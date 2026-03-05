@@ -1711,6 +1711,14 @@ export default function Editor() {
       box-shadow: 0 10px 30px rgba(67, 97, 238, 0.3);
       min-height: calc(100vh - 40px);
       box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+    
+    .container * {
+      max-width: 100%;
+      box-sizing: border-box;
     }
     
     h1, h2, h3, h4, h5, h6 {
@@ -1750,12 +1758,40 @@ export default function Editor() {
     
     p {
       margin-bottom: 1em;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    a {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-all;
     }
     
     hr {
       border: none;
       border-top: 2px solid ${useBlackMask ? 'rgba(96, 165, 250, 0.4)' : 'rgba(67, 97, 238, 0.3)'};
       margin: 1.8em 0;
+      max-width: 100%;
+      height: 0;
+      box-sizing: content-box;
+    }
+    
+    table {
+      max-width: 100%;
+      width: 100% !important;
+      border-collapse: collapse;
+      margin: 1em 0;
+      display: block;
+      overflow-x: auto;
+      word-break: normal;
+    }
+    
+    pre {
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
     }
     
     img {
@@ -2439,11 +2475,28 @@ export default function Editor() {
       
       .link-card .card-content {
         flex-direction: column;
+        height: auto !important;
       }
       
       .link-card .card-content > div:first-child {
         width: 100%;
         height: 200px;
+        flex-shrink: 0;
+      }
+      
+      .link-card .card-content > div:last-child {
+        width: 100%;
+        padding-top: 12px;
+      }
+      
+      .link-card {
+        max-height: none !important;
+        height: auto !important;
+      }
+      
+      .link-card .card-content > div:last-child div {
+        white-space: normal !important;
+        word-break: break-all !important;
       }
     }
   </style>
