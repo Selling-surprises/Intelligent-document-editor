@@ -26,6 +26,7 @@ import { generateVideoEmbed, generateAudioEmbed } from '@/utils/mediaUtils';
 import { exportMarkdown } from '@/utils/markdownUtils';
 import { importHTMLFile } from '@/utils/htmlImportUtils';
 import { importMarkdownFile } from '@/utils/markdownImportUtils';
+import { supabase } from '@/db/supabase';
 import hljs from 'highlight.js/lib/core';
 // 导入常用语言
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -140,6 +141,8 @@ export default function Editor() {
   const savedRangeRef = useRef<Range | null>(null);
   const handleEditLinkRef = useRef<((linkElement: HTMLAnchorElement) => void) | null>(null);
   
+  const isInternalChange = useRef(false);
+
   const [content, setContent] = useState('<p>开始编辑您的文档...</p>');
   const [history, setHistory] = useState<string[]>([content]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -771,41 +774,69 @@ export default function Editor() {
   }, [updateFormatState]);
 
   const handleContentChange = useCallback((newContent: string) => {
-    if (newContent === undefined || newContent === null) return;
-    setContent(newContent);
+    // 严谨检查, 防止 undefined 字符串进入
+    if (newContent === undefined || newContent === null || String(newContent) === 'undefined') {
+      return;
+    }
     
-    // 添加到历史记录
+    // 如果内容完全相同，不触发更新
+    if (newContent === content) return;
+    
+    setContent(newContent);
+
+    // 如果是内部撤销/重做触发的变化，不计入历史记录
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
+
+    // 历史记录更新逻辑
     setHistory(prev => {
-      const currentHistory = prev.slice(0, historyIndex + 1);
-      if (currentHistory.length > 0 && currentHistory[currentHistory.length - 1] === newContent) {
+      // 截取当前进度之前的历史
+      const newHistory = prev.slice(0, historyIndex + 1);
+      
+      // 如果新内容与最后一条历史相同，则不添加
+      if (newHistory.length > 0 && newHistory[newHistory.length - 1] === newContent) {
         return prev;
       }
-      const newHistory = [...currentHistory, newContent];
       
-      // 限制历史记录数量
-      if (newHistory.length > MAX_HISTORY) {
-        return newHistory.slice(newHistory.length - MAX_HISTORY);
+      const updatedHistory = [...newHistory, newContent];
+      
+      // 限制最大历史记录数量
+      if (updatedHistory.length > MAX_HISTORY) {
+        const sliced = updatedHistory.slice(updatedHistory.length - MAX_HISTORY);
+        setHistoryIndex(sliced.length - 1);
+        return sliced;
       }
       
-      return newHistory;
+      setHistoryIndex(updatedHistory.length - 1);
+      return updatedHistory;
     });
-    
-    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1));
-  }, [historyIndex]);
+  }, [content, historyIndex]);
 
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      setContent(history[newIndex]);
+      const undoContent = history[newIndex];
+      
+      if (undoContent !== undefined && String(undoContent) !== 'undefined') {
+        isInternalChange.current = true;
+        setHistoryIndex(newIndex);
+        setContent(undoContent);
+      }
     }
   }, [history, historyIndex]);
 
   const handleRedo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
-      setHistoryIndex(newIndex);
-      setContent(history[newIndex]);
+      const redoContent = history[newIndex];
+      
+      if (redoContent !== undefined && String(redoContent) !== 'undefined') {
+        isInternalChange.current = true;
+        setHistoryIndex(newIndex);
+        setContent(redoContent);
+      }
     }
   }, [history, historyIndex]);
 
@@ -1103,13 +1134,12 @@ export default function Editor() {
     });
     
     try {
-      const { data, error } = await (window as any).supabase.functions.invoke('web-to-doc', {
+      const { data, error } = await supabase.functions.invoke('web-to-doc', {
         body: { url },
       });
       
       if (error) {
-        const errorMsg = await error?.context?.text();
-        throw new Error(errorMsg || error.message);
+        throw new Error(error.message);
       }
       
       if (data && data.content) {
@@ -1133,7 +1163,7 @@ export default function Editor() {
         variant: 'destructive',
       });
     }
-  }, [toast, handleContentChange]);
+  }, [toast, handleContentChange, supabase]);
 
   const handleInsertVideo = useCallback((url: string, platform: string) => {
     restoreSelection();
@@ -3188,6 +3218,7 @@ export default function Editor() {
                   onExportJSON={handleExportJSON}
                   onExportMarkdown={handleExportMarkdown}
                   onImportJSON={handleImportJSON}
+                  onFetchWebPage={handleFetchWebPage}
                   onImportHTML={handleImportHTML}
                   onImportMarkdown={handleImportMarkdown}
                 />
@@ -3243,6 +3274,7 @@ export default function Editor() {
           }
           setParagraphDialogOpen(true);
         }}
+        onFetchWebPage={handleFetchWebPage}
       />
 
       {/* 主内容区域 */}
