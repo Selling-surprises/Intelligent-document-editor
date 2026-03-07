@@ -219,9 +219,15 @@ export default function Editor() {
   } = useContextMenu({
     editorRef: editorContentRef as any,
     onContentChange: () => {
-      const element = (editorContentRef.current as any)?.getElement?.();
+      // editorContentRef.current 已经是 DOM 元素本身，或者是 EditorContent 暴露的 getElement 方法返回的结果
+      // 在 useEffect 中它被赋值为 editorRef.current.getElement()，即 HTMLDivElement
+      const element = editorContentRef.current;
       if (element) {
-        handleContentChange(element.innerHTML);
+        // @ts-ignore
+        const html = element.innerHTML || (element as any).getElement?.()?.innerHTML;
+        if (html !== undefined) {
+          handleContentChange(html);
+        }
       }
     },
     onCommand: (command, item, context) => {
@@ -765,12 +771,16 @@ export default function Editor() {
   }, [updateFormatState]);
 
   const handleContentChange = useCallback((newContent: string) => {
+    if (newContent === undefined || newContent === null) return;
     setContent(newContent);
     
     // 添加到历史记录
     setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(newContent);
+      const currentHistory = prev.slice(0, historyIndex + 1);
+      if (currentHistory.length > 0 && currentHistory[currentHistory.length - 1] === newContent) {
+        return prev;
+      }
+      const newHistory = [...currentHistory, newContent];
       
       // 限制历史记录数量
       if (newHistory.length > MAX_HISTORY) {
@@ -1067,13 +1077,63 @@ export default function Editor() {
     }
   }, [restoreSelection]);
 
-  const handleImageUpload = useCallback((url: string) => {
-    const html = `<img src="${url}" class="resizable-image" style="max-width: 100%;" /><p><br></p>`;
-    document.execCommand('insertHTML', false, html);
-    if (editorRef.current) {
-      setContent(editorRef.current.getElement()?.innerHTML || '');
+  const handleImageUpload = useCallback((url: string, caption?: string) => {
+    if (!url) return;
+    
+    if (caption) {
+      const figureHtml = `
+        <figure class="image-container" style="display: flex; flex-direction: column; align-items: center; margin: 1.5em 0; border: 1px solid rgba(0,0,0,0.05); padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.02);">
+          <img src="${url}" style="max-width: 100%; height: auto; border-radius: 4px;" />
+          <figcaption style="margin-top: 10px; font-size: 14px; color: #666; font-style: italic; text-align: center; font-family: inherit;">${caption}</figcaption>
+        </figure>
+        <p><br></p>
+      `;
+      handleCommand("insertHTML", figureHtml);
+    } else {
+      handleCommand("insertImage", url);
     }
-  }, []);
+  }, [handleCommand]);
+
+  const handleFetchWebPage = useCallback(async (url: string) => {
+    if (!url) return;
+    
+    toast({
+      title: '正在抓取网页...',
+      description: '请稍候，系统正在转换文档',
+    });
+    
+    try {
+      const { data, error } = await (window as any).supabase.functions.invoke('web-to-doc', {
+        body: { url },
+      });
+      
+      if (error) {
+        const errorMsg = await error?.context?.text();
+        throw new Error(errorMsg || error.message);
+      }
+      
+      if (data && data.content) {
+        // 更新标题
+        if (data.title) {
+          setSettings(prev => ({ ...prev, pageTitle: data.title }));
+        }
+        
+        // 导入内容
+        handleContentChange(data.content);
+        toast({
+          title: '抓取成功',
+          description: '网页已成功导入编辑器',
+        });
+      }
+    } catch (err: any) {
+      console.error('抓取失败:', err);
+      toast({
+        title: '抓取失败',
+        description: err.message || '请检查网址是否正确或重试',
+        variant: 'destructive',
+      });
+    }
+  }, [toast, handleContentChange]);
 
   const handleInsertVideo = useCallback((url: string, platform: string) => {
     restoreSelection();

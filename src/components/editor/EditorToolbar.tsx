@@ -51,7 +51,7 @@ import { FindReplaceDialog } from './FindReplaceDialog';
 
 interface EditorToolbarProps {
   onCommand: (command: string, value?: string) => void;
-  onInsertImage: (src: string) => void;
+  onInsertImage: (src: string, caption?: string) => void;
   onInsertLink: (linkData: LinkData) => void;
   onInsertAttachment: (data: AttachmentData) => void;
   onInsertVideo: (url: string, platform: string) => void;

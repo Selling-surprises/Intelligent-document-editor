@@ -16,13 +16,16 @@ import { FileUpload } from '@/components/ui/file-upload';
 import { Image } from 'lucide-react';
 
 interface ImageDialogProps {
-  onInsertImage: (src: string) => void;
+  onInsertImage: (src: string, caption?: string) => void;
 }
 
 export function ImageDialog({ onInsertImage }: ImageDialogProps) {
   const [open, setOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [caption, setCaption] = useState('');
   const [previewImage, setPreviewImage] = useState('');
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,22 +34,28 @@ export function ImageDialog({ onInsertImage }: ImageDialogProps) {
       return;
     }
 
-    onInsertImage(imageUrl.trim());
+    onInsertImage(imageUrl.trim(), caption.trim());
     
     // 重置表单并关闭对话框
     setImageUrl('');
+    setCaption('');
     setOpen(false);
   };
 
-  const handleFileUpload = (file: File) => {
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
     const reader = new FileReader();
     reader.onload = (event) => {
-      const src = event.target?.result as string;
-      setPreviewImage(src);
-      onInsertImage(src);
-      setOpen(false);
+      setPreviewImage(event.target?.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleInsertLocalImage = () => {
+    if (previewImage) {
+      onInsertImage(previewImage, caption.trim());
+      setOpen(false);
+    }
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -54,7 +63,9 @@ export function ImageDialog({ onInsertImage }: ImageDialogProps) {
     if (!newOpen) {
       // 关闭时重置表单
       setImageUrl('');
+      setCaption('');
       setPreviewImage('');
+      setSelectedFile(null);
     }
   };
 
@@ -84,13 +95,42 @@ export function ImageDialog({ onInsertImage }: ImageDialogProps) {
               <Label htmlFor="image-file">选择图片文件</Label>
               <FileUpload
                 accept="image/*"
-                onChange={handleFileUpload}
+                onChange={handleFileSelect}
                 value={previewImage}
-                onRemove={() => setPreviewImage('')}
+                onRemove={() => {
+                    setPreviewImage('');
+                    setSelectedFile(null);
+                }}
                 previewType="image"
                 buttonText="选择图片"
               />
             </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="image-caption-local">图片标注 (可选)</Label>
+              <Input
+                id="image-caption-local"
+                placeholder="输入图片标注文字..."
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+              />
+            </div>
+            
+            <DialogFooter>
+               <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleOpenChange(false)}
+                >
+                  取消
+                </Button>
+                <Button 
+                  onClick={handleInsertLocalImage} 
+                  disabled={!previewImage}
+                >
+                  插入图片
+                </Button>
+            </DialogFooter>
           </TabsContent>
           
           <TabsContent value="online">
@@ -105,6 +145,16 @@ export function ImageDialog({ onInsertImage }: ImageDialogProps) {
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="image-caption-online">图片标注 (可选)</Label>
+                <Input
+                  id="image-caption-online"
+                  placeholder="输入图片标注文字..."
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
                 />
               </div>
               
