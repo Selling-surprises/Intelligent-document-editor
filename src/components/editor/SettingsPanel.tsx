@@ -25,7 +25,6 @@ interface SettingsPanelProps {
   onImportJSON?: () => void;
   onImportHTML?: () => void;
   onImportMarkdown?: () => void;
-  onFetchWebPage?: (url: string) => void;
 }
 const PRESET_TOC_COLORS = [
   { color: '#4361ee', name: '经典蓝' },
@@ -49,12 +48,10 @@ export function SettingsPanel({
   onImportJSON,
   onImportHTML,
   onImportMarkdown,
-  onFetchWebPage,
 }: SettingsPanelProps) {
   const [faviconUrl, setFaviconUrl] = useState('');
   const [backgroundUrl, setBackgroundUrl] = useState('');
   const [mobileBackgroundUrl, setMobileBackgroundUrl] = useState('');
-  const [webUrl, setWebUrl] = useState('');
 
   const handleFileUpload = (
     type: 'favicon' | 'background' | 'mobileBackground',
@@ -109,7 +106,7 @@ export function SettingsPanel({
               id="title"
               value={settings.pageTitle}
               onChange={(e) => onSettingsChange({ pageTitle: e.target.value })}
-              placeholder="离线word文档"
+              placeholder="智能文档"
             />
           </div>
 
@@ -527,38 +524,6 @@ export function SettingsPanel({
             />
           </div>
           
-          {/* 网页下载导入 */}
-          {onFetchWebPage && (
-            <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
-              <Label className="flex items-center gap-2 text-sm">
-                <Download className="w-4 h-4 text-primary" />
-                网页下载导入 (Beta)
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="https://example.com/article"
-                  value={webUrl}
-                  onChange={(e) => setWebUrl(e.target.value)}
-                  className="h-8 text-xs"
-                />
-                <Button 
-                  onClick={() => {
-                    onFetchWebPage(webUrl);
-                    setWebUrl('');
-                  }} 
-                  disabled={!webUrl.trim()}
-                  variant="secondary"
-                  className="shrink-0 h-8 text-xs"
-                >
-                  导入
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                输入网址即可将其内容抓取并导入编辑器进行二次编辑
-              </p>
-            </div>
-          )}
-
           {/* 导出HTML文件 */}
           <Button onClick={onExport} className="w-full" size="lg">
             <Download className="h-4 w-4 mr-2" />

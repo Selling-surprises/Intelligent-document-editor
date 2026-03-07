@@ -46,7 +46,6 @@ import {
   Scissors,
   TableProperties,
   Code,
-  Globe,
   Download,
 } from 'lucide-react';
 import type { FontFamily, FontSize } from '@/types/editor';
@@ -91,7 +90,6 @@ interface EditorToolbarProps {
   onPrint: () => void;
   selectedText?: string;
   onOpenParagraphDialog?: () => void;
-  onFetchWebPage?: (url: string) => void;
 }
 
 const fontFamilies: FontFamily[] = [
@@ -149,11 +147,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onFindReplace,
   selectedText = '',
   onOpenParagraphDialog,
-  onFetchWebPage,
 }) => {
   const [isSticky, setIsSticky] = React.useState(false);
-  const [webUrl, setWebUrl] = React.useState('');
-  const [webImportOpen, setWebImportOpen] = React.useState(false);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -476,51 +471,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           />
           <ImageDialog onInsertImage={onInsertImage} />
           <SpecialCharsDialog onInsertChar={onInsertSpecialChar} />
-
-          {/* 网页导入 */}
-          {onFetchWebPage && (
-            <Dialog open={webImportOpen} onOpenChange={setWebImportOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="从网页导入内容">
-                  <Globe className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>从网页导入</DialogTitle>
-                  <DialogDescription>
-                    输入网址即可抓取网页主要内容并导入到编辑器中。
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="web-url">网页地址</Label>
-                    <Input
-                      id="web-url"
-                      placeholder="https://example.com/article"
-                      value={webUrl}
-                      onChange={(e) => setWebUrl(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setWebImportOpen(false)}>取消</Button>
-                  <Button 
-                    onClick={() => {
-                      if (onFetchWebPage) {
-                        onFetchWebPage(webUrl);
-                        setWebUrl('');
-                        setWebImportOpen(false);
-                      }
-                    }}
-                    disabled={!webUrl.trim()}
-                  >
-                    开始导入
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
           <Button
             variant="ghost"
             size="icon"

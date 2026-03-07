@@ -1125,46 +1125,6 @@ export default function Editor() {
     }
   }, [handleCommand]);
 
-  const handleFetchWebPage = useCallback(async (url: string) => {
-    if (!url) return;
-    
-    toast({
-      title: '正在抓取网页...',
-      description: '请稍候，系统正在转换文档',
-    });
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('web-to-doc', {
-        body: { url },
-      });
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      if (data && data.content) {
-        // 更新标题
-        if (data.title) {
-          setSettings(prev => ({ ...prev, pageTitle: data.title }));
-        }
-        
-        // 导入内容
-        handleContentChange(data.content);
-        toast({
-          title: '抓取成功',
-          description: '网页已成功导入编辑器',
-        });
-      }
-    } catch (err: any) {
-      console.error('抓取失败:', err);
-      toast({
-        title: '抓取失败',
-        description: err.message || '请检查网址是否正确或重试',
-        variant: 'destructive',
-      });
-    }
-  }, [toast, handleContentChange, supabase]);
-
   const handleInsertVideo = useCallback((url: string, platform: string) => {
     restoreSelection();
     const embed = generateVideoEmbed(url, platform);
@@ -3219,7 +3179,6 @@ export default function Editor() {
                   onExportJSON={handleExportJSON}
                   onExportMarkdown={handleExportMarkdown}
                   onImportJSON={handleImportJSON}
-                  onFetchWebPage={handleFetchWebPage}
                   onImportHTML={handleImportHTML}
                   onImportMarkdown={handleImportMarkdown}
                 />
@@ -3275,7 +3234,6 @@ export default function Editor() {
           }
           setParagraphDialogOpen(true);
         }}
-        onFetchWebPage={handleFetchWebPage}
       />
 
       {/* 主内容区域 */}

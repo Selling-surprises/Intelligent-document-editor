@@ -62,7 +62,7 @@ export function EditorStatusBar({
       </div>
       
       <div className="text-xs text-muted-foreground hidden sm:block">
-        <span className="font-medium gradient-text">离线Word编辑器</span>
+        <span className="font-medium gradient-text">智能文档编辑器</span>
       </div>
     </div>
   );
