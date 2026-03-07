@@ -3,9 +3,16 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:  # 添加手动触发
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -18,26 +25,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'  # 添加缓存加速
 
       - name: Install dependencies
         run: npm install
 
       - name: Build
-        run: npx vite build
+        run: npm run build  # 使用 package.json 中的脚本
 
-      # ✅ 新增：复制 index.html 为 404.html
       - name: Copy index.html to 404.html
         run: cp dist/index.html dist/404.html
 
-      - name: Debug build output
-        run: |
-          echo "=== dist directory ==="
-          ls -la dist/
-          echo "=== assets directory ==="
-          ls -la dist/assets/
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main'  # 只在 main 分支部署
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          force_orphan: true  # 每次强制创建干净的 gh-pages 分支
