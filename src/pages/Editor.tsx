@@ -1763,6 +1763,7 @@ export default function Editor() {
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${settings.pageTitle}</title>
   ${settings.favicon ? `<link rel="icon" href="${settings.favicon}">` : ''}
