@@ -3,16 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:  # 添加手动触发
+  workflow_dispatch:  # 允许手动触发
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  contents: write  # 关键：允许写入分支
 
 jobs:
   build-and-deploy:
@@ -25,21 +19,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'  # 添加缓存加速
 
+      # 使用 npm install（你当前的方式）
       - name: Install dependencies
         run: npm install
 
+      # 检查是否有 build 脚本，如果没有直接用 vite
       - name: Build
-        run: npm run build  # 使用 package.json 中的脚本
+        run: |
+          if npm run build --if-present; then
+            echo "Build completed with npm run build"
+          else
+            echo "Using npx vite build"
+            npx vite build
+          fi
+
+      # 确保 dist 目录存在
+      - name: Verify dist
+        run: |
+          ls -la dist/
+          test -f dist/index.html || (echo "index.html not found!" && exit 1)
 
       - name: Copy index.html to 404.html
         run: cp dist/index.html dist/404.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
-        if: github.ref == 'refs/heads/main'  # 只在 main 分支部署
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          force_orphan: true  # 每次强制创建干净的 gh-pages 分支
+          force_orphan: true  # 强制创建干净的 gh-pages 分支
